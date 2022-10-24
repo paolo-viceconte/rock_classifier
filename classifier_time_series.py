@@ -380,184 +380,187 @@ if __name__ == "__main__":
                     if dataset in train_datasets:
                         x_scaling.append(datapoint)
 
-# Convert to numpy array
-x_scaling = np.array(x_scaling)
-x_train = np.array(x_train)
-y_train = np.array(y_train)
-x_test = np.array(x_test)
-y_test = np.array(y_test)
+    # Convert to numpy array
+    x_scaling = np.array(x_scaling)
+    x_train = np.array(x_train)
+    y_train = np.array(y_train)
+    x_test = np.array(x_test)
+    y_test = np.array(y_test)
 
-# Check inputs and labels size
-print("x_scaling:", x_scaling.shape)
-print("x_train:", x_train.shape)
-print("y_train:", y_train.shape)
-print("x_test:", x_test.shape)
-print("y_test:", y_test.shape)
+    # Check inputs and labels size
+    print("x_scaling:", x_scaling.shape)
+    print("x_train:", x_train.shape)
+    print("y_train:", y_train.shape)
+    print("x_test:", x_test.shape)
+    print("y_test:", y_test.shape)
 
-# Check classes
-classes = np.unique(np.concatenate((y_train, y_test), axis=0))
-print(classes)
+    # Check classes
+    classes = np.unique(np.concatenate((y_train, y_test), axis=0))
+    print(classes)
 
-# TODO: save scaling for inference
-# Compute scaling on training data
-x_mean = np.mean(x_scaling, axis=0)
-x_std = np.std(x_scaling, axis=0)
-for i in range(len(x_std)):
-    if x_std[i] == 0:
-        x_std[i] = 1
+    # TODO: save scaling for inference
+    # Compute scaling on training data
+    x_mean = np.mean(x_scaling, axis=0)
+    x_std = np.std(x_scaling, axis=0)
+    for i in range(len(x_std)):
+        if x_std[i] == 0:
+            x_std[i] = 1
 
-# Scale train and test data
-for i in range(len(x_train)):
-    for j in range(len(x_train[0])):
-        x_train[i][j] = (x_train[i][j] - x_mean) / x_std
-for i in range(len(x_test)):
-    for j in range(len(x_test[0])):
-        x_test[i][j] = (x_test[i][j] - x_mean) / x_std
+    # Scale train and test data
+    for i in range(len(x_train)):
+        for j in range(len(x_train[0])):
+            x_train[i][j] = (x_train[i][j] - x_mean) / x_std
+    for i in range(len(x_test)):
+        for j in range(len(x_test[0])):
+            x_test[i][j] = (x_test[i][j] - x_mean) / x_std
 
-##########
-# TRAINING
-##########
+    ##########
+    # TRAINING
+    ##########
 
-if training:
+    if training:
 
-    def make_model(input_shape):
-        input_layer = keras.layers.Input(input_shape)
+        def make_model(input_shape):
+            input_layer = keras.layers.Input(input_shape)
 
-        conv1 = keras.layers.Conv1D(filters=filters, kernel_size=kernel_size, padding="same")(input_layer)
-        conv1 = keras.layers.BatchNormalization()(conv1)
-        conv1 = keras.layers.ReLU()(conv1)
+            conv1 = keras.layers.Conv1D(filters=filters, kernel_size=kernel_size, strides=1, padding="same")(input_layer)
+            conv1 = keras.layers.BatchNormalization()(conv1)
+            conv1 = keras.layers.ReLU()(conv1)
+            # conv1 = keras.layers.ELU()(conv1)
 
-        conv2 = keras.layers.Conv1D(filters=filters, kernel_size=kernel_size, padding="same")(conv1)
-        conv2 = keras.layers.BatchNormalization()(conv2)
-        conv2 = keras.layers.ReLU()(conv2)
+            conv2 = keras.layers.Conv1D(filters=filters, kernel_size=kernel_size, strides=1, padding="same")(conv1)
+            conv2 = keras.layers.BatchNormalization()(conv2)
+            conv2 = keras.layers.ReLU()(conv2)
+            # conv2 = keras.layers.ELU()(conv2)
 
-        conv3 = keras.layers.Conv1D(filters=filters, kernel_size=kernel_size, padding="same")(conv2)
-        conv3 = keras.layers.BatchNormalization()(conv3)
-        conv3 = keras.layers.ReLU()(conv3)
+            conv3 = keras.layers.Conv1D(filters=filters, kernel_size=kernel_size, strides=1, padding="same")(conv2)
+            conv3 = keras.layers.BatchNormalization()(conv3)
+            conv3 = keras.layers.ReLU()(conv3)
+            # conv3 = keras.layers.ELU()(conv3)
 
-        gap = keras.layers.GlobalAveragePooling1D()(conv3)
+            gap = keras.layers.GlobalAveragePooling1D()(conv3)
 
-        output_layer = keras.layers.Dense(1, activation="sigmoid")(gap)
+            output_layer = keras.layers.Dense(1, activation="sigmoid")(gap)
 
-        return keras.models.Model(inputs=input_layer, outputs=output_layer)
+            return keras.models.Model(inputs=input_layer, outputs=output_layer)
 
-    model = make_model(input_shape=x_train.shape[1:])
+        model = make_model(input_shape=x_train.shape[1:])
 
-    # shuffle (by full-window samples) the training set
-    idx = np.random.permutation(len(x_train))
-    x_train = x_train[idx]
-    y_train = y_train[idx]
+        # shuffle (by full-window samples) the training set
+        idx = np.random.permutation(len(x_train))
+        x_train = x_train[idx]
+        y_train = y_train[idx]
 
-    callbacks = [
-        keras.callbacks.ModelCheckpoint(
-            "model_ts.h5", save_best_only=True, monitor="val_loss"
-        ),
-        # keras.callbacks.ReduceLROnPlateau(
-        #     monitor="val_loss", factor=0.5, patience=20, min_lr=0.0001
-        # ),
-        # keras.callbacks.EarlyStopping(monitor="val_loss", patience=50, verbose=1),
-    ]
+        callbacks = [
+            keras.callbacks.ModelCheckpoint(
+                "model_ts.h5", save_best_only=True, monitor="val_loss"
+            ),
+            # keras.callbacks.ReduceLROnPlateau(
+            #     monitor="val_loss", factor=0.5, patience=20, min_lr=0.0001
+            # ),
+            # keras.callbacks.EarlyStopping(monitor="val_loss", patience=50, verbose=1),
+        ]
 
-    model.compile(
-        optimizer="adam",
-        loss="binary_crossentropy",
-        metrics=["binary_accuracy"],
-    )
+        model.compile(
+            optimizer="adam",
+            loss="binary_crossentropy",
+            metrics=["binary_accuracy"],
+        )
 
-    history = model.fit(
-        x_train,
-        y_train,
-        batch_size=batch_size,
-        epochs=epochs,
-        callbacks=callbacks,
-        validation_split=0.2,
-        verbose=1,
-    )
+        history = model.fit(
+            x_train,
+            y_train,
+            batch_size=batch_size,
+            epochs=epochs,
+            callbacks=callbacks,
+            validation_split=0.2,
+            verbose=1,
+        )
 
-    # Plot model's training and validation loss
-    metric = "binary_accuracy"
-    plt.figure()
-    plt.plot(history.history[metric])
-    plt.plot(history.history["val_" + metric])
-    plt.title("model " + metric)
-    plt.ylabel(metric, fontsize="large")
-    plt.xlabel("epoch", fontsize="large")
-    plt.legend(["train", "val"], loc="best")
+        # Plot model's training and validation loss
+        metric = "binary_accuracy"
+        plt.figure()
+        plt.plot(history.history[metric])
+        plt.plot(history.history["val_" + metric])
+        plt.title("model " + metric)
+        plt.ylabel(metric, fontsize="large")
+        plt.xlabel("epoch", fontsize="large")
+        plt.legend(["train", "val"], loc="best")
+        plt.show()
+        plt.close()
+
+    ################
+    # EVALUATE MODEL
+    ################
+
+    # model = keras.models.load_model("model_ts.h5")
+    model = keras.models.load_model("model_ts_v0.h5")
+
+    # Check the evolution of the model on a test timeseries
+    pred_classes = []
+    for i in range(len(x_test)):
+        pred = model(np.reshape(x_test[i],(1,x_test[i].shape[0],x_test[i].shape[1]))).numpy()[0]
+        pred_class = np.where(pred > 0.5, 1, 0)[0]
+        pred_classes.append(pred_class)
+        print(pred_class, " ("+str(round(pred[0],3))+")\t", y_test[i])
+    test_acc_no_filter = np.count_nonzero(abs(y_test - pred_classes)==0)
+    print("Accuracy with no filtering: ", round(test_acc_no_filter/len(y_test),2)*100)
+
+    # Plot the evolution of the model on the test set
+    fig = plt.figure()
+    plt.plot(np.array(range(len(pred_classes))),
+             pred_classes,
+             label="Prediction",
+             color='blue')
+    plt.fill_between(np.array(range(len(pred_classes))),
+                     0,
+                     abs(y_test - pred_classes),
+                     label="Errors",
+                     color='red')
+    plt.plot(np.array(range(len(y_test))),
+             y_test,
+             label="Ground-truth",
+             color='black')
+    plt.xlabel("measurements")
+    plt.ylabel("label")
+    plt.grid()
+    plt.legend()
+    plt.title("Prediction VS ground truth - test set", fontsize=16)
     plt.show()
-    plt.close()
 
-################
-# EVALUATE MODEL
-################
+    # Filtering
+    filtered_pred_class = medfilt(pred_classes, kernel_size=9)
+    test_acc_filtered = np.count_nonzero(abs(y_test - filtered_pred_class)==0)
+    print("Accuracy with filtering: ", round(test_acc_filtered/len(y_test),2)*100)
 
-# model = keras.models.load_model("model_ts.h5")
-model = keras.models.load_model("model_ts_v0.h5")
+    # Plot the evolution of the model on the test set after filtering
+    fig = plt.figure()
+    plt.plot(np.array(range(len(filtered_pred_class))),
+             filtered_pred_class,
+             label="Filtered Prediction",
+             color='blue')
+    plt.fill_between(np.array(range(len(filtered_pred_class))),
+                     0,
+                     abs(y_test - filtered_pred_class),
+                     label="Errors",
+                     color='red')
+    plt.plot(np.array(range(len(y_test))),
+             y_test,
+             label="Ground-truth",
+             color='black')
+    plt.xlabel("measurements")
+    plt.ylabel("label")
+    plt.grid()
+    plt.legend()
+    plt.title("Filtered Prediction VS ground truth - test set", fontsize=16)
+    plt.show()
 
-# Check the evolution of the model on a test timeseries
-pred_classes = []
-for i in range(len(x_test)):
-    pred = model(np.reshape(x_test[i],(1,x_test[i].shape[0],x_test[i].shape[1]))).numpy()[0]
-    pred_class = np.where(pred > 0.5, 1, 0)[0]
-    pred_classes.append(pred_class)
-    print(pred_class, " ("+str(round(pred[0],3))+")\t", y_test[i])
-test_acc_no_filter = np.count_nonzero(abs(y_test - pred_classes)==0)
-print("Accuracy with no filtering: ", round(test_acc_no_filter/len(y_test),2)*100)
+    # Check the accuracy on the whole test set
+    test_loss, test_acc = model.evaluate(x_test, y_test)
+    print("Test accuracy", test_acc)
+    print("Test loss", test_loss)
 
-# Plot the evolution of the model on the test set
-fig = plt.figure()
-plt.plot(np.array(range(len(pred_classes))),
-         pred_classes,
-         label="Prediction",
-         color='blue')
-plt.fill_between(np.array(range(len(pred_classes))),
-                 0,
-                 abs(y_test - pred_classes),
-                 label="Errors",
-                 color='red')
-plt.plot(np.array(range(len(y_test))),
-         y_test,
-         label="Ground-truth",
-         color='black')
-plt.xlabel("measurements")
-plt.ylabel("label")
-plt.grid()
-plt.legend()
-plt.title("Prediction VS ground truth - test set", fontsize=16)
-plt.show()
-
-# Filtering
-filtered_pred_class = medfilt(pred_classes, kernel_size=9)
-test_acc_filtered = np.count_nonzero(abs(y_test - filtered_pred_class)==0)
-print("Accuracy with filtering: ", round(test_acc_filtered/len(y_test),2)*100)
-
-# Plot the evolution of the model on the test set after filtering
-fig = plt.figure()
-plt.plot(np.array(range(len(filtered_pred_class))),
-         filtered_pred_class,
-         label="Filtered Prediction",
-         color='blue')
-plt.fill_between(np.array(range(len(filtered_pred_class))),
-                 0,
-                 abs(y_test - filtered_pred_class),
-                 label="Errors",
-                 color='red')
-plt.plot(np.array(range(len(y_test))),
-         y_test,
-         label="Ground-truth",
-         color='black')
-plt.xlabel("measurements")
-plt.ylabel("label")
-plt.grid()
-plt.legend()
-plt.title("Filtered Prediction VS ground truth - test set", fontsize=16)
-plt.show()
-
-# Check the accuracy on the whole test set
-test_loss, test_acc = model.evaluate(x_test, y_test)
-print("Test accuracy", test_acc)
-print("Test loss", test_loss)
-
-# Confusion matrix
-y_test_prob = model.predict(x_test)
-y_test_pred = np.where(y_test_prob > 0.5, 1, 0)
-print(confusion_matrix(y_test, y_test_pred))
+    # Confusion matrix
+    y_test_prob = model.predict(x_test)
+    y_test_pred = np.where(y_test_prob > 0.5, 1, 0)
+    print(confusion_matrix(y_test, y_test_pred))
