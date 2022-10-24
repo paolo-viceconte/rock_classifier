@@ -11,6 +11,7 @@ from scipy.signal import medfilt
 # CONFIGURATION
 ###############
 
+visualize_features = False
 visualize_palm_skin = False
 extract_gt = False
 visualize_labels = False
@@ -29,17 +30,17 @@ input_window_size = 20
 
 # Features
 features = [
-    "left_palm", # This alone would be the best one since does not require runtime computation
-    # "left_palm_norm",
-    # "left_palm_mean",
-    # "left_palm_std",
-    # "left_active_taxels",
-    # "left_n_active_taxels",
-    # "left_norm_active_taxels",
-    # "left_mean_active_taxels",
-    # "left_std_active_taxels",
-    # "left_spatial_mean_active_taxels",
-    # "left_spatial_std_active_taxels",
+    "left_palm", # This alone would be the best one since does not require runtime computation # dim = 48
+    # "left_palm_norm", # dim = 1
+    # "left_palm_mean", # dim = 1
+    # "left_palm_std", # dim = 1
+    # "left_active_taxels", # dim = 48 (mostly zeros)
+    # "left_n_active_taxels", # dim = 1
+    # "left_norm_active_taxels", # dim = 1
+    # "left_mean_active_taxels", # dim = 1
+    # "left_std_active_taxels", # dim = 1
+    # "left_spatial_mean_active_taxels", # dim = 2
+    # "left_spatial_std_active_taxels", # dim = 2
     ]
 
 # Training hyperparams # TODO: find via random search using KerasTuner
@@ -193,28 +194,41 @@ if __name__ == "__main__":
             data[str(hand)+"_std_active_taxels"] = np.array(std_active_taxels)
 
             # Spatial mean and std of active taxels
-            spatial_mean_active_taxels = [0] * len(data[str(hand)+"_palm"])
-            spatial_std_active_taxels = [0] * len(data[str(hand)+"_palm"])
+            spatial_mean_active_taxels = [[0,0]] * len(data[str(hand)+"_palm"])
+            spatial_std_active_taxels = [[0,0]] * len(data[str(hand)+"_palm"])
             for i in range(len(data[str(hand)+"_palm"])):
                 curr_active_taxels_x = np.array(ordered_palm_x)[np.nonzero(data[str(hand) + "_active_taxels"][i])]
                 curr_active_taxels_y = np.array(ordered_palm_y)[np.nonzero(data[str(hand) + "_active_taxels"][i])]
-                if curr_active_taxels_x.size > 0:
+                if curr_active_taxels_x.size > 1: # TODO: do not consider the mean if only one pixel is active (?)
                     spatial_mean_active_taxels[i] = [np.mean(curr_active_taxels_x), np.mean(curr_active_taxels_y)]
                     spatial_std_active_taxels[i] = [np.std(curr_active_taxels_x), np.std(curr_active_taxels_y)]
-            data[str(hand)+"_spatial_mean_active_taxels"] = np.array(mean_active_taxels)
-            data[str(hand)+"_spatial_std_active_taxels"] = np.array(std_active_taxels)
+            data[str(hand)+"_spatial_mean_active_taxels"] = np.array(spatial_mean_active_taxels)
+            data[str(hand)+"_spatial_std_active_taxels"] = np.array(spatial_std_active_taxels)
 
-            # Debug
-            for key in data.keys():
-                print("\ndata[" + key + "]", "\t", type(data[key]), "\t", data[key].shape)
+            # TODO: tmp visualization for our specific test dataset
+            if dataset in test_datasets:
 
-                # fig = plt.figure()
-                # plt.plot(np.array(range(data[key].shape[0])),
-                #            data[key],
-                #            label=key)
-                # plt.grid()
-                # plt.legend()
-                # plt.show()
+                if visualize_features:
+
+                    # Visualize features
+                    for key in data.keys():
+
+                        print("\ndata[" + key + "]", "\t", type(data[key]), "\t", data[key].shape)
+
+                        fig = plt.figure()
+                        plt.plot(np.array(range(data[key].shape[0])),
+                                   data[key],
+                                   label=key)
+
+                        # TODO: tmp labels for our specific test dataset
+                        plt.axvline(x=3100, linestyle="--", color='k')
+                        plt.text(x=2850, y=20, s="PLAIN", fontsize=12)
+                        plt.text(x=3150, y=20, s="ROUGH", fontsize=12)
+
+                        plt.grid()
+                        if len(data[key].shape) == 1 or data[key].shape[1] < 5:
+                            plt.legend()
+                        plt.show()
 
             ##########################
             # VISUALIZE PALM SKIN DATA
