@@ -5,6 +5,7 @@ from tensorflow import keras
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from sklearn.metrics import confusion_matrix
+from scipy.signal import medfilt
 
 ###############
 # CONFIGURATION
@@ -489,14 +490,67 @@ if training:
 # EVALUATE MODEL
 ################
 
-model = keras.models.load_model("model_ts.h5")
+# model = keras.models.load_model("model_ts.h5")
+model = keras.models.load_model("model_ts_v0.h5")
 
 # Check the evolution of the model on a test timeseries
+pred_classes = []
 for i in range(len(x_test)):
-
     pred = model(np.reshape(x_test[i],(1,x_test[i].shape[0],x_test[i].shape[1]))).numpy()[0]
     pred_class = np.where(pred > 0.5, 1, 0)[0]
+    pred_classes.append(pred_class)
     print(pred_class, " ("+str(round(pred[0],3))+")\t", y_test[i])
+test_acc_no_filter = np.count_nonzero(abs(y_test - pred_classes)==0)
+print("Accuracy with no filtering: ", round(test_acc_no_filter/len(y_test),2)*100)
+
+# Plot the evolution of the model on the test set
+fig = plt.figure()
+plt.plot(np.array(range(len(pred_classes))),
+         pred_classes,
+         label="Prediction",
+         color='blue')
+plt.fill_between(np.array(range(len(pred_classes))),
+                 0,
+                 abs(y_test - pred_classes),
+                 label="Errors",
+                 color='red')
+plt.plot(np.array(range(len(y_test))),
+         y_test,
+         label="Ground-truth",
+         color='black')
+plt.xlabel("measurements")
+plt.ylabel("label")
+plt.grid()
+plt.legend()
+plt.title("Prediction VS ground truth - test set", fontsize=16)
+plt.show()
+
+# Filtering
+filtered_pred_class = medfilt(pred_classes, kernel_size=9)
+test_acc_filtered = np.count_nonzero(abs(y_test - filtered_pred_class)==0)
+print("Accuracy with filtering: ", round(test_acc_filtered/len(y_test),2)*100)
+
+# Plot the evolution of the model on the test set after filtering
+fig = plt.figure()
+plt.plot(np.array(range(len(filtered_pred_class))),
+         filtered_pred_class,
+         label="Filtered Prediction",
+         color='blue')
+plt.fill_between(np.array(range(len(filtered_pred_class))),
+                 0,
+                 abs(y_test - filtered_pred_class),
+                 label="Errors",
+                 color='red')
+plt.plot(np.array(range(len(y_test))),
+         y_test,
+         label="Ground-truth",
+         color='black')
+plt.xlabel("measurements")
+plt.ylabel("label")
+plt.grid()
+plt.legend()
+plt.title("Filtered Prediction VS ground truth - test set", fontsize=16)
+plt.show()
 
 # Check the accuracy on the whole test set
 test_loss, test_acc = model.evaluate(x_test, y_test)
