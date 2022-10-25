@@ -35,12 +35,16 @@ features = [
     # "left_palm_mean", # dim = 1
     # "left_palm_std", # dim = 1
     # "left_active_taxels", # dim = 48 (mostly zeros)
-    # "left_n_active_taxels", # dim = 1
+    # "left_n_active_taxels", # dim = 1 # TODO: promising (?)
     # "left_norm_active_taxels", # dim = 1
-    # "left_mean_active_taxels", # dim = 1
+    # "left_mean_active_taxels", # dim = 1  # TODO: promising (?)
     # "left_std_active_taxels", # dim = 1
     # "left_spatial_mean_active_taxels", # dim = 2
-    # "left_spatial_std_active_taxels", # dim = 2
+    # "left_spatial_std_active_taxels", # dim = 2  # TODO: promising (?)
+    # "left_spatial_cum_dist_active_taxels", # dim = 1
+    # "left_normalized_spatial_cum_dist_active_taxels", # dim = 1 # TODO: promising (?)
+    # "left_weighted_spatial_cum_dist_active_taxels", # dim = 1
+    # "left_normalized_weighted_spatial_cum_dist_active_taxels", # dim = 1
     ]
 
 # Training hyperparams # TODO: find via random search using KerasTuner
@@ -204,6 +208,36 @@ if __name__ == "__main__":
                     spatial_std_active_taxels[i] = [np.std(curr_active_taxels_x), np.std(curr_active_taxels_y)]
             data[str(hand)+"_spatial_mean_active_taxels"] = np.array(spatial_mean_active_taxels)
             data[str(hand)+"_spatial_std_active_taxels"] = np.array(spatial_std_active_taxels)
+
+            # Cumulative weighted distance between active taxels
+            spatial_cum_dist_active_taxels = [0] * len(data[str(hand)+"_palm"])
+            normalized_spatial_cum_dist_active_taxels = [0] * len(data[str(hand)+"_palm"])
+            weighted_spatial_cum_dist_active_taxels = [0] * len(data[str(hand)+"_palm"])
+            normalized_weighted_spatial_cum_dist_active_taxels = [0] * len(data[str(hand)+"_palm"])
+            for i in range(len(data[str(hand)+"_palm"])):
+                curr_active_taxels = data[str(hand)+"_active_taxels"][i][np.nonzero(data[str(hand) + "_active_taxels"][i])]
+                curr_active_taxels_x = np.array(ordered_palm_x)[np.nonzero(data[str(hand) + "_active_taxels"][i])]
+                curr_active_taxels_y = np.array(ordered_palm_y)[np.nonzero(data[str(hand) + "_active_taxels"][i])]
+                if curr_active_taxels_x.size > 1:
+                    cum_dist = 0
+                    weighted_cum_dist = 0
+                    weight_sum = 0
+                    for j in range(len(curr_active_taxels_x)):
+                        for k in range(j+1,len(curr_active_taxels_x)):
+                            curr_cum_dist = np.sqrt(np.power((curr_active_taxels_x[j] - curr_active_taxels_x[k]),2) +
+                                                    np.power((curr_active_taxels_y[j] - curr_active_taxels_y[k]),2))
+                            cum_dist += curr_cum_dist
+                            curr_weight = abs(curr_active_taxels[j] - curr_active_taxels[k])
+                            weight_sum += curr_weight
+                            weighted_cum_dist += curr_weight * curr_cum_dist
+                    spatial_cum_dist_active_taxels[i] = cum_dist
+                    normalized_spatial_cum_dist_active_taxels[i] = cum_dist/data[str(hand)+"_n_active_taxels"][i]
+                    weighted_spatial_cum_dist_active_taxels[i] = weighted_cum_dist
+                    normalized_weighted_spatial_cum_dist_active_taxels[i] = weighted_cum_dist/weight_sum
+            data[str(hand)+"_spatial_cum_dist_active_taxels"] = np.array(spatial_cum_dist_active_taxels)
+            data[str(hand)+"_normalized_spatial_cum_dist_active_taxels"] = np.array(normalized_spatial_cum_dist_active_taxels)
+            data[str(hand)+"_weighted_spatial_cum_dist_active_taxels"] = np.array(weighted_spatial_cum_dist_active_taxels)
+            data[str(hand)+"_normalized_weighted_spatial_cum_dist_active_taxels"] = np.array(normalized_weighted_spatial_cum_dist_active_taxels)
 
             # TODO: tmp visualization for our specific test dataset
             if dataset in test_datasets:
@@ -438,19 +472,13 @@ if __name__ == "__main__":
             input_layer = keras.layers.Input(input_shape)
 
             conv1 = keras.layers.Conv1D(filters=filters, kernel_size=kernel_size, strides=1, padding="same")(input_layer)
-            conv1 = keras.layers.BatchNormalization()(conv1)
-            conv1 = keras.layers.ReLU()(conv1)
-            # conv1 = keras.layers.ELU()(conv1)
+            conv1 = keras.layers.ELU()(conv1)
 
             conv2 = keras.layers.Conv1D(filters=filters, kernel_size=kernel_size, strides=1, padding="same")(conv1)
-            conv2 = keras.layers.BatchNormalization()(conv2)
-            conv2 = keras.layers.ReLU()(conv2)
-            # conv2 = keras.layers.ELU()(conv2)
+            conv2 = keras.layers.ELU()(conv2)
 
             conv3 = keras.layers.Conv1D(filters=filters, kernel_size=kernel_size, strides=1, padding="same")(conv2)
-            conv3 = keras.layers.BatchNormalization()(conv3)
-            conv3 = keras.layers.ReLU()(conv3)
-            # conv3 = keras.layers.ELU()(conv3)
+            conv3 = keras.layers.ELU()(conv3)
 
             gap = keras.layers.GlobalAveragePooling1D()(conv3)
 
