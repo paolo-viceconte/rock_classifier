@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from sklearn.metrics import confusion_matrix
 from scipy.signal import medfilt
+from scipy.fft import fft, fftfreq
 
 ###############
 # CONFIGURATION
@@ -16,6 +17,7 @@ visualize_palm_skin = False
 extract_gt = False
 visualize_labels = False
 
+frequency_domain = False
 training = False
 
 # Thresholds to identify contacts
@@ -47,7 +49,10 @@ features = [
     # "left_normalized_weighted_spatial_cum_dist_active_taxels", # dim = 1
     ]
 
-# Training hyperparams # TODO: find via random search using KerasTuner
+if frequency_domain and features != ["left_palm"]:
+    input("Frequency domain only on taxels data")
+
+# Training hyperparams
 epochs = 100
 batch_size = 32
 filters = 32
@@ -409,17 +414,49 @@ if __name__ == "__main__":
                             else:
                                 chunk = np.concatenate((chunk, [[elem] for elem in data[feature][i-input_window_size:i]]), axis=1)
 
+                    # Timeseries data in the frequency domain
+                    chunk_freq = np.array([])
+                    sf = 100
+                    si = 1 / sf
+                    N = chunk.shape[0]
+                    for j in range(chunk.shape[1]):
+                        yf = fft(chunk[:, j])
+                        if chunk_freq.size == 0:
+                            chunk_freq = np.array([[elem] for elem in yf])
+                        else:
+                            chunk_freq = np.concatenate((chunk_freq, [[elem] for elem in yf]), axis=1)
+
+                    # # Plot chunk in the time domain
+                    # plt.figure()
+                    # for j in range(chunk.shape[1]):
+                    #     plt.plot(range(len(chunk[:, j])), chunk[:, j])
+                    # # Plot chunk in the frequency domain
+                    # plt.figure()
+                    # for j in range(chunk.shape[1]):
+                    #     yf = fft(chunk[:, j])
+                    #     xf = fftfreq(N, si)[:N // 2]
+                    #     plt.plot(xf, 2.0 / N * np.abs(yf[0:N // 2]))
+                    # plt.show()
+
                     # Label
                     label = labels[i]
 
                     # Populate training and testing datasets
                     if dataset in train_datasets:
-                        x_train.append(chunk)
+                        if frequency_domain:
+                            x_train.append(chunk_freq)
+                        else:
+                            x_train.append(chunk)
                         y_train.append(label)
+
                     elif dataset in test_datasets:
-                        x_test.append(chunk)
+                        if frequency_domain:
+                            x_test.append(chunk_freq)
+                        else:
+                            x_test.append(chunk)
                         y_test.append(label)
 
+                    # TODO: normalize before fft?
                     # Populate dataset for scaling
                     datapoint = []
                     for feature in features:
