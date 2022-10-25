@@ -33,8 +33,11 @@ train_datasets = ["3_last_datasets/robot_logger_device_2022_10_10_00_18_47", # p
 # train_datasets = ["2_middle_datasets/robot_logger_device_2022_10_08_21_48_03", # plain stone dataset
 #                  "2_middle_datasets/robot_logger_device_2022_10_08_22_04_53"] # rough stone dataset
 test_datasets = ["3_last_datasets/robot_logger_device_2022_10_10_00_27_55"]  # mixed dataset
+# test_datasets = ["2_middle_datasets/robot_logger_device_2022_10_08_22_14_37"]  # mixed operator
 # test_datasets = ["2_middle_datasets/robot_logger_device_2022_10_08_21_48_03"]  # plain stone operator
 # test_datasets = ["2_middle_datasets/robot_logger_device_2022_10_08_22_04_53"]  # rough stone operator
+# test_datasets = ["3_last_datasets/robot_logger_device_2022_10_10_00_18_47"] # plain stone dataset
+# test_datasets = ["3_last_datasets/robot_logger_device_2022_10_10_00_25_09"] # rough stone dataset
 
 ###########
 # LOAD DATA
