@@ -21,7 +21,7 @@ extract_gt = False
 visualize_labels = False
 visualize_test_set = False
 
-training = True
+training = False
 
 # Thresholds to identify contacts
 contact_length_threshold = 15
@@ -493,12 +493,12 @@ if __name__ == "__main__":
     plt.show()
 
     # Check the accuracy on the whole test set
-    test_loss, test_acc = model.evaluate(x_test, y_test)
+    test_loss, test_acc = model.evaluate(x_test, y_test, batch_size = batch_size)
     print("Test accuracy", test_acc)
     print("Test loss", test_loss)
 
     # Confusion matrix
-    y_test_prob = model.predict(x_test)
+    y_test_prob = model.predict(x_test, batch_size = batch_size)
     y_test_pred = np.where(y_test_prob > 0.5, 1, 0)
     print(confusion_matrix(y_test, y_test_pred))
 
