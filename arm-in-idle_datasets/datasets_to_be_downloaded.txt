@@ -1,0 +1,11 @@
+The following datasets
+
+robot_logger_device_2022_10_10_00_18_47.mat
+robot_logger_device_2022_10_10_00_25_09.mat
+robot_logger_device_2022_10_10_00_27_55.mat
+
+can be found at 
+
+https://istitutoitalianotecnologia-my.sharepoint.com/:f:/g/personal/paolo_viceconte_iit_it/Eoy2FWegziZHh_cMynQ-9eABBJi88CHkMB1e_jwQ0DOjBQ?e=fIanjZ.
+
+Please download them and place them in this folder.
